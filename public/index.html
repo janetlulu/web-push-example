@@ -19,46 +19,39 @@
       }
       return outputArray;
     }
-
-
-    var reg;
-    window.addEventListener('load', function() {
-      Notification.requestPermission(function(status) {
-        // status = denied => 拒絕
-        // status = default => 不理會
-        // status = granted => 允許
-        if (Notification.permission === status) {
-          // new Notification('aaa', {
-          //   body: 'fefef'
-          // })
-          navigator.serviceWorker.register('/sw.js').then(swReg => {
-            reg = swReg;
-            return swReg.pushManager.getSubscription();
-          }).then(sub => {
-            if (sub === null) {
-              return reg.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array('BPz4WOY59_ZR8exvjS08Y6ICcVOduUF8W48e6v9k0F2pUs7uxWgAyV8ntk6LB5EEF8iFPqTAYHPy5szLibGK1ic')
-              })
-            }
-          }).then(newSub => {
-            if (newSub) {
-              fetch('/add', {
-                body: JSON.stringify(newSub),
-                method: 'POST',
-                headers: {
-                  'content-type': 'application/json'
-                },
-              })
-            }
-          })
-        } else {
-          Notification.permission = status;
-        }
+    window.addEventListener('load', () => {
+      fetch('/publickey').then(res => res.json()).then(publickey => {
+        let reg = null;
+        navigator.serviceWorker.register('/sw.js').then(swReg => {
+          reg = swReg;
+          return swReg.pushManager.getSubscription();
+        }).then(sub => {
+          if (sub === null) {
+            return reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(publickey)
+            })
+          }
+        }).then(newSub => {
+          if (newSub) {
+            fetch('/add', {
+              body: JSON.stringify(newSub),
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json'
+              },
+            })
+          }
+        }).catch(err => {
+          alert('請授予接收推波通知權限');
+        })
       });
     });
   </script>
 </head>
+
 <body>
+  hello
 </body>
+
 </html>
