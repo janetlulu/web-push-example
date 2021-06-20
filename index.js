@@ -19,46 +19,53 @@ webpush.setVapidDetails('mailto:tooto1985@gmail.com', vapidKeys.publicKey, vapid
 // 底下為 express 後端處理
 const express = require('express');
 const path = require('path');
+const { send } = require('process');
 const app = express();
-
-// 靜態檔案
 app.use(express.static(path.join(__dirname, 'public')));
-
-// 取得 public key
-app.get('/publickey', (req, res) => { 
-  res.json(vapidKeys.publicKey);
-});
-
-// 儲存 sub
 app.post('/add', express.json(), (req, res) => {
   const clientSubs = readFile();
   clientSubs.push(req.body);
   writeFile(clientSubs);
   res.end();
 });
-
-// 取得 sub 清單
-app.get('/list', (req, res) => {
-  const clientSubs = readFile();
-  res.json(clientSubs);
-});
-
-// 發送推波(title=標題, body=內文, key=參數值)
 app.get('/push', (req, res) => {
+  const result = { success: 0, faile: 0 };
   const clientSubs = readFile();
-  clientSubs.forEach(clientSub => {
-    const pushConfig = {
-      endpoint: clientSub.endpoint,
-      keys: {
-        auth: clientSub.keys.auth,
-        p256dh: clientSub.keys.p256dh,
-      }
-    };
-    webpush.sendNotification(pushConfig, JSON.stringify({ title: req.query.title || '新貼文', body: req.query.body || '有新增的貼文!!', key: req.query.key })).catch(function(err) {
-      console.log(err);
+  let i = 0;
+  const sendOverCheck = () => {
+    i--;
+    if (i === 0) {
+      writeFile(clientSubs);
+      res.json(result);
+    }
+  };
+  const scheduled = clientSubs.filter(item => !item.statusCode);
+  if (scheduled.length) {
+    scheduled.forEach(clientSub => {
+      const pushConfig = {
+        endpoint: clientSub.endpoint,
+        keys: {
+          auth: clientSub.keys.auth,
+          p256dh: clientSub.keys.p256dh,
+        }
+      };
+      const sendData = {
+        title: req.query.title || '新貼文',
+        body: req.query.body || '有新增的貼文!!',
+        key: req.query.key
+      };
+      i++;
+      webpush.sendNotification(pushConfig, JSON.stringify(sendData)).then(() => {
+        result.success++;
+        sendOverCheck();
+      }).catch(err => {
+        clientSub.statusCode = err.statusCode;
+        result.faile++;
+        sendOverCheck();
+      });
     });
-  })
-  res.end();
+  } else {
+    res.json(result);
+  }
 });
-
 app.listen(process.env.PORT || 3000);

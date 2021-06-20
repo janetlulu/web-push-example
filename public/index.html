@@ -7,51 +7,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
   <script>
-    function urlBase64ToUint8Array(base64String) {
-      var padding = '='.repeat((4 - base64String.length % 4) % 4);
-      var base64 = (base64String + padding)
-        .replace(/\-/g, '+')
-        .replace(/_/g, '/');
-      var rawData = window.atob(base64);
-      var outputArray = new Uint8Array(rawData.length);
-      for (var i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
-      }
-      return outputArray;
-    }
     window.addEventListener('load', () => {
-      fetch('/publickey').then(res => res.json()).then(publickey => {
-        let reg = null;
-        navigator.serviceWorker.register('/sw.js').then(swReg => {
-          reg = swReg;
-          return swReg.pushManager.getSubscription();
-        }).then(sub => {
-          if (sub === null) {
-            return reg.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array(publickey)
-            })
-          }
-        }).then(newSub => {
-          if (newSub) {
-            fetch('/add', {
-              body: JSON.stringify(newSub),
-              method: 'POST',
-              headers: {
-                'content-type': 'application/json'
-              },
-            })
-          }
-        }).catch(err => {
-          alert('請授予接收推波通知權限');
-        })
-      });
+      let reg = null;
+      navigator.serviceWorker.register('/sw.js').then(swReg => {
+        reg = swReg;
+        return swReg.pushManager.getSubscription();
+      }).then(sub => {
+        if (sub === null) {
+          return reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: 'BPz4WOY59_ZR8exvjS08Y6ICcVOduUF8W48e6v9k0F2pUs7uxWgAyV8ntk6LB5EEF8iFPqTAYHPy5szLibGK1ic',
+          })
+        }
+      }).then(newSub => {
+        if (newSub) {
+          fetch('/add', {
+            body: JSON.stringify(newSub),
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json'
+            },
+          })
+        }
+      }).catch(err => {
+        alert('請授予接收推波通知權限');
+      })
     });
   </script>
 </head>
-
 <body>
-  hello
+  <h1>index</h1>
 </body>
-
 </html>
